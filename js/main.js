@@ -58,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveManager.deleteSave();
         location.reload();
     });
+
+    AI.prime().then(updateAIStatus);
 });
 
 function showScreen(screenId) {
@@ -324,7 +326,7 @@ function applyEffectsSafe(effects) {
 
 function startMission() {
     const state = engine.getState();
-    const mission = engine.generateMission();
+    const mission = AI.nextMission() || engine.generateMission();
     if (!mission) {
         addNarrative({ type: "text", content: "Pas de missions disponibles pour l'instant. Entraîne-toi et reviens." });
         showFreePlayChoices();
@@ -754,7 +756,12 @@ function meetContact() {
         `${contact.name} : "Si tu as besoin de moi, tu sais où me trouver."`
     ];
 
-    addNarrative({ type: "speaker", content: dialogue[Math.floor(Math.random() * dialogue.length)] });
+    const aiLine = AI.contactLine(contactId);
+    const content = aiLine
+        ? `${contact.name} : "${aiLine}"`
+        : dialogue[Math.floor(Math.random() * dialogue.length)];
+
+    addNarrative({ type: "speaker", content });
 
     state.contacts[contactId] = (state.contacts[contactId] || 0) + 5;
 
@@ -919,7 +926,21 @@ function updateHUD() {
     document.getElementById('val-risk').textContent = state.heat;
 
     const newsEl = document.getElementById('news-text');
-    newsEl.textContent = engine.getRandomNews();
+    if (window._newsDay !== state.totalDays) {
+        window._newsDay = state.totalDays;
+        window._newsPool = AI.dailyNews();
+        if (window._newsPool.length === 0) {
+            window._newsPool = [engine.getRandomNews(), engine.getRandomNews(), engine.getRandomNews()];
+        }
+    }
+    newsEl.textContent = window._newsPool[Math.floor(Math.random() * window._newsPool.length)];
+}
+
+function updateAIStatus() {
+    const el = document.getElementById('ai-status');
+    if (!el) return;
+    const st = AI.status();
+    el.textContent = st.cache > 0 ? `✦ IA ${st.text} (${st.cache})` : `✦ IA ${st.text}`;
 }
 
 function showSkills() {
@@ -1065,6 +1086,15 @@ function showRivals() {
     const state = engine.getState();
     const container = document.getElementById('rival-list');
     container.innerHTML = '';
+
+    const taunt = AI.rivalTaunt();
+    if (taunt) {
+        const p = document.createElement('p');
+        p.className = 'system';
+        p.innerHTML = `💬 ${taunt}`;
+        p.style.marginBottom = '8px';
+        container.appendChild(p);
+    }
 
     const entries = Object.keys(state.rivalActivity).map(name => ({
         name,

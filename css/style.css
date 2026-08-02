@@ -434,6 +434,15 @@ body {
     animation: scroll 25s linear infinite;
 }
 
+.ai-status {
+    flex-shrink: 0;
+    font-size: 9px;
+    color: var(--green-dim);
+    border: 1px solid var(--border);
+    padding: 2px 5px;
+    border-radius: 2px;
+}
+
 @keyframes scroll {
     0% { transform: translateX(100%); }
     100% { transform: translateX(-200%); }
