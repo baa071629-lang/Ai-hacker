@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>Ghost Protocol — Carrière de Hacker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="screen-splash" class="screen active">
+        <div class="terminal-text">
+            <div class="ascii-art">
+ _____ _               _____                                  
+|  __ \ |             / ____|                                 
+| |__)| |__   ___  __| (___   __ _ _ __ ___  _ __   __ _ ___ 
+|  ___/ '_ \ / _ \/ __|\___ \ / _` | '_ ` _ \| '_ \ / _` / __|
+| |   | | | |  __/ (__|____) | (_| | | | | | | |_) | (_| \__ \
+|_|   |_| |_|\___|\___|_____/ \__,_|_| |_| |_| .__/ \__,_|___/
+                                              | |              
+                                              |_|              
+            </div>
+            <div class="subtitle">CARRIÈRE DE HACKER</div>
+            <div class="version">v0.1 — MVP</div>
+        </div>
+        <button id="btn-new-game" class="btn-terminal">[ NOUVELLE PARTIE ]</button>
+        <button id="btn-continue" class="btn-terminal btn-hidden">[ CONTINUER ]</button>
+    </div>
+
+    <div id="screen-create" class="screen">
+        <div class="terminal-text">
+            <h2 class="glow">> CRÉATION DU PROFIL</h2>
+            <div class="form-group">
+                <label class="glow">PSEUDO:</label>
+                <input type="text" id="input-pseudo" class="terminal-input" placeholder="ton alias..." maxlength="20">
+            </div>
+            <div class="form-group">
+                <label class="glow">ORIGINE:</label>
+                <div id="origin-choices" class="choice-grid">
+                    <button class="btn-choice" data-origin="dev">Développeur freelance<br><small>Compétences techniques solides</small></button>
+                    <button class="btn-choice" data-origin="student">Étudiant en info<br><small>Curieux mais inexpérimenté</small></button>
+                    <button class="btn-choice" data-origin="gamer">Gamer professionnel<br><small>Réflexes rapides, réseau étendu</small></button>
+                    <button class="btn-choice" data-origin="fixer">Dépanneur informatique<br><small>Connait le terrain, accès aux entreprises</small></button>
+                </div>
+            </div>
+            <button id="btn-start-game" class="btn-terminal btn-hidden">[ LANCER LA PARTIE ]</button>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div id="hud-top" class="hud">
+            <div class="hud-left">
+                <span id="hud-pseudo" class="glow">USERNAME</span>
+                <span id="hud-money" class="money">$0</span>
+            </div>
+            <div class="hud-right">
+                <span id="hud-date">2024</span>
+                <span id="hud-rep" class="rep">Réputation: 0</span>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <div id="news-ticker" class="news-ticker">
+                <span class="glow">ACTUALITÉS:</span>
+                <span id="news-text">Chargement des flux...</span>
+            </div>
+
+            <div id="game-narrative" class="narrative-area">
+                <!-- Le texte narratif apparait ici -->
+            </div>
+
+            <div id="game-choices" class="choices-area">
+                <!-- Les boutons de choix apparaissent ici -->
+            </div>
+
+            <div id="game-log" class="log-area">
+                <!-- Historique des actions -->
+            </div>
+        </div>
+
+        <div id="hud-bottom" class="hud">
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">TECH</span>
+                    <div class="stat-bar"><div id="bar-tech" class="stat-fill" style="width:10%"></div></div>
+                    <span id="val-tech" class="stat-val">10</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">SOCIAL</span>
+                    <div class="stat-bar"><div id="bar-social" class="stat-fill" style="width:10%"></div></div>
+                    <span id="val-social" class="stat-val">10</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">RISQUE</span>
+                    <div class="stat-bar"><div id="bar-risk" class="stat-fill risk" style="width:0%"></div></div>
+                    <span id="val-risk" class="stat-val">0</span>
+                </div>
+            </div>
+            <div class="btn-hud-row">
+                <button id="btn-skills" class="btn-hud">[ SKILLS ]</button>
+                <button id="btn-inventory" class="btn-hud">[ INVENTAIRE ]</button>
+                <button id="btn-network" class="btn-hud">[ RÉSEAU ]</button>
+                <button id="btn-save" class="btn-hud">[ SAUVEGARDER ]</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-skills" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> COMPÉTENCES</h2>
+            <div id="skills-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="screen-inventory" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> INVENTAIRE</h2>
+            <div id="inventory-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="screen-network" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> RÉSEAU / CONTACTS</h2>
+            <div id="network-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="screen-gameover" class="screen">
+        <div class="terminal-text">
+            <h2 class="glow red">> GAME OVER</h2>
+            <div id="gameover-reason"></div>
+            <div id="gameover-stats"></div>
+            <button id="btn-restart" class="btn-terminal">[ RECOMMENCER ]</button>
+        </div>
+    </div>
+
+    <div id="typing-cursor" class="cursor">_</div>
+
+    <script src="js/data.js"></script>
+    <script src="js/story.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/save.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
