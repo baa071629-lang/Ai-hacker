@@ -29,6 +29,8 @@ class GameEngine {
             },
             skills: {},
             inventory: [...originData.startItems],
+            equipped: {},
+            messages: [],
             contacts: {},
             flags: {},
             missionsCompleted: 0,
@@ -60,6 +62,13 @@ class GameEngine {
         originData.startSkills.forEach(skill => {
             if (GAME_DATA.skills[skill]) {
                 this.state.skills[skill] = 20;
+            }
+        });
+
+        this.state.inventory.forEach(id => {
+            const item = GAME_DATA.items.find(i => i.id === id);
+            if (item && item.type === "gear") {
+                this.state.equipped[id] = true;
             }
         });
 
@@ -97,6 +106,15 @@ class GameEngine {
         if (!savedState || savedState.version !== GAME_DATA.VERSION) {
             return false;
         }
+        if (!savedState.equipped) {
+            savedState.equipped = {};
+            savedState.inventory.forEach(id => {
+                const item = GAME_DATA.items.find(i => i.id === id);
+                if (item && item.type === "gear") savedState.equipped[id] = true;
+            });
+        }
+        if (!savedState.messages) savedState.messages = [];
+        if (!savedState.location) savedState.location = "chambre";
         this.state = savedState;
         return true;
     }
@@ -148,10 +166,54 @@ class GameEngine {
     removeItem(itemId) {
         const idx = this.state.inventory.indexOf(itemId);
         if (idx !== -1) this.state.inventory.splice(idx, 1);
+        delete this.state.equipped[itemId];
     }
 
     hasItem(itemId) {
         return this.state.inventory.includes(itemId);
+    }
+
+    equipItem(itemId) {
+        const item = GAME_DATA.items.find(i => i.id === itemId);
+        if (!item || item.type !== "gear") return { ok: false, msg: "Cet objet ne s'équipe pas." };
+        if (!this.hasItem(itemId)) return { ok: false, msg: "Tu ne possèdes pas cet objet." };
+        this.state.equipped[itemId] = true;
+        return { ok: true, msg: `Équipé : ${item.name}.` };
+    }
+
+    unequipItem(itemId) {
+        const item = GAME_DATA.items.find(i => i.id === itemId);
+        if (!item) return { ok: false, msg: "Objet inconnu." };
+        delete this.state.equipped[itemId];
+        return { ok: true, msg: `Déséquipé : ${item.name}.` };
+    }
+
+    isEquipped(itemId) {
+        return !!this.state.equipped[itemId];
+    }
+
+    addMessage(fromId, text) {
+        const contact = GAME_DATA.contacts[fromId];
+        const from = contact ? contact.name : fromId;
+        const avatar = contact ? contact.avatar : "📱";
+        this.state.messages.push({
+            id: "msg_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            from: fromId,
+            fromName: from,
+            avatar: avatar,
+            text: text,
+            day: this.state.totalDays,
+            date: `${this.state.day}/${this.state.month}/${this.state.year}`,
+            read: false
+        });
+        if (window.gameUI && window.gameUI.phoneMessage) {
+            window.gameUI.phoneMessage({ from, avatar, text });
+        }
+        return this.state.messages[this.state.messages.length - 1];
+    }
+
+    unreadCount() {
+        return (this.state.messages || []).filter(m => !m.read).length;
     }
 
     advanceTime(days = 1) {
@@ -447,6 +509,7 @@ class GameEngine {
     gearBonusFor(skill) {
         let bonus = 0;
         this.state.inventory.forEach(id => {
+            if (!this.state.equipped[id]) return;
             const item = GAME_DATA.items.find(i => i.id === id);
             if (item && item.effect && item.effect.skills && item.effect.skills[skill]) {
                 bonus += item.effect.skills[skill];
@@ -493,11 +556,16 @@ class GameEngine {
 
     sellItem(itemId) {
         const item = GAME_DATA.items.find(i => i.id === itemId);
-        if (!item || item.type !== "data") return { ok: false, msg: "Tu ne peux pas vendre ça ici." };
+        if (!item) return { ok: false, msg: "Objet inconnu." };
+        if (item.type === "phone") return { ok: false, msg: "Tu ne vends pas ton téléphone." };
+        if (item.type !== "data" && item.type !== "gear") return { ok: false, msg: "Cet objet ne se vend pas." };
         const idx = this.state.inventory.indexOf(itemId);
         if (idx === -1) return { ok: false, msg: "Tu ne possèdes pas cet objet." };
-        const price = Math.max(50, item.value || 100);
+        const price = item.type === "data"
+            ? Math.max(50, item.value || 100)
+            : Math.max(20, Math.floor((this.getMarketPrice(itemId) || item.value || 100) * 0.5));
         this.state.inventory.splice(idx, 1);
+        delete this.state.equipped[itemId];
         this.state.money += price;
         return { ok: true, msg: `Vendu pour ${price}$.` };
     }

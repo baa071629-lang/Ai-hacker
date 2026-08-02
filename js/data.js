@@ -7,28 +7,28 @@ const GAME_DATA = {
             desc: "5 ans de missions client, mais la routine te tue. La nuit, tu explores des failles.",
             bonuses: { tech: 15, social: 5, risk: 0 },
             startSkills: ["python", "linux"],
-            startItems: ["laptop_perso", "vpn_1mois"]
+            startItems: ["phone", "laptop_perso", "vpn_1mois"]
         },
         student: {
             name: "Étudiant en info",
             desc: "L3 informatique, passionné mais sans expérience. Tu apprends vite, trop vite.",
             bonuses: { tech: 8, social: 10, risk: 0 },
             startSkills: ["python", "linux"],
-            startItems: ["laptop_perso", "cafe_x5"]
+            startItems: ["phone", "laptop_perso", "cafe_x5"]
         },
         gamer: {
             name: "Gamer professionnel",
             desc: "Le rank push t'a appris la stratégie et la rapidité. Le réseau en plus.",
             bonuses: { tech: 5, social: 12, risk: 0 },
             startSkills: ["reseaux", "social_engineering"],
-            startItems: ["pc_gaming", "vpn_1mois"]
+            startItems: ["phone", "pc_gaming", "vpn_1mois"]
         },
         fixer: {
             name: "Dépanneur informatique",
             desc: "Tu connais les failles des PME parce que tu les répares... ou tu les crées.",
             bonuses: { tech: 10, social: 8, risk: 0 },
             startSkills: ["windows", "reseaux"],
-            startItems: ["kit_outils", "acces_pme"]
+            startItems: ["phone", "kit_outils", "acces_pme"]
         }
     },
 
@@ -56,6 +56,7 @@ const GAME_DATA = {
     },
 
     items: [
+        { id: "phone", name: "Téléphone", desc: "Ton téléphone — messages, notifications, contacts. Toujours dans ta poche.", rarity: "common", value: 0, effect: {}, type: "phone" },
         { id: "laptop_perso", name: "Laptop perso", desc: "PC moyen, suffisant pour débuter", rarity: "common", value: 0, effect: { skill: "python", bonus: 0 }, type: "gear" },
         { id: "pc_gaming", name: "PC Gaming", desc: "Puissant — +5 Exploitation, +5 Malware", rarity: "common", value: 400, effect: { skills: { exploits: 5, malware: 5 } }, type: "gear" },
         { id: "kit_outils", name: "Kit d'outils", desc: "Clés USB armées, adaptateurs — utile sur le terrain", rarity: "common", value: 120, effect: { skills: { hardware: 3 } }, type: "gear" },

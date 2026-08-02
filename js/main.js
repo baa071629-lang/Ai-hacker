@@ -5,6 +5,17 @@ let worldEventQueue = [];
 let heatEventQueue = [];
 let achievementQueue = [];
 let chapterQueue = [];
+let phoneQueue = [];
+
+const ENVIRONMENTS = {
+    chambre: { name: "Appartement", icon: "🏠", label: "nuit violette" },
+    cafe: { name: "Café", icon: "☕", label: "chaleur ambrée" },
+    planque: { name: "Planque", icon: "🕳️", label: "vert sombre" },
+    darknet: { name: "Darknet", icon: "🕸️", label: "rouge sang" },
+    final: { name: "Néon", icon: "🌆", label: "éclats cyan" }
+};
+
+const CHAPTER_ENV = { 1: "chambre", 2: "cafe", 3: "planque", 4: "darknet", 5: "final" };
 
 document.addEventListener('DOMContentLoaded', () => {
     engine = new GameEngine();
@@ -14,7 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
         pushWorldEvent: (text) => worldEventQueue.push(text),
         pushHeatEvent: (text, threshold) => heatEventQueue.push({ text, threshold }),
         unlockAchievement: (id) => achievementQueue.push(id),
-        pushChapter: (n) => chapterQueue.push(n)
+        pushChapter: (n) => chapterQueue.push(n),
+        phoneMessage: (msg) => {
+            phoneQueue.push(msg);
+            notify(msg.from, msg.text, msg.avatar, "phone");
+        }
     };
 
     if (saveManager.hasSave()) {
@@ -51,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-skills').addEventListener('click', showSkills);
     document.getElementById('btn-inventory').addEventListener('click', showInventory);
+    document.getElementById('btn-phone').addEventListener('click', showPhone);
     document.getElementById('btn-network').addEventListener('click', showNetwork);
     document.getElementById('btn-market').addEventListener('click', showMarket);
     document.getElementById('btn-rivals').addEventListener('click', showRivals);
@@ -82,8 +98,14 @@ function startGame() {
     engine.newGame(origin, pseudo);
 
     showScreen('screen-game');
+    setEnvironment("chambre");
     updateHUD();
     startPrologue();
+
+    setTimeout(() => {
+        receivePhoneMessage("shadow", `Bienvenue, ${pseudo}. J'ai vu ton signal sur le forum. Reste discret, et le milieu te prendra au sérieux.`);
+        addNarrative({ type: "speaker", content: `Shadow : "Bienvenue, ${pseudo}. J'ai vu ton signal sur le forum. Reste discret."` });
+    }, 6000);
 }
 
 function loadGame() {
@@ -703,6 +725,7 @@ function exploreDarknet() {
     addNarrative({ type: "action", content: "🕶️ EXPLORATION DARKNET" });
     addNarrative({ type: "text", content: event.text });
     engine.applyEffects(event.effect);
+    setEnvironment("darknet");
 
     engine.advanceTime(1);
     if (checkGameOver()) return;
@@ -741,6 +764,25 @@ function passDay() {
     const state = engine.getState();
     engine.advanceTime(1);
     addNarrative({ type: "text", content: `La journée passe. ${state.day}/${state.month}/${state.year}. Rien de spécial, et c'est bien.` });
+
+    const known = Object.keys(GAME_DATA.contacts).filter(c => (state.contacts[c] || 0) > 0);
+    if (Math.random() < 0.2 && known.length > 0) {
+        const contactId = known[Math.floor(Math.random() * known.length)];
+        const randomMsgs = [
+            "Salut. Tu m'as manqué ces derniers jours.",
+            "J'ai entendu une rumeur sur un gros contrat. Je t'en parle bientôt.",
+            "Le forum est en ébullition. Quelqu'un cherche un opérateur sérieux.",
+            "Fais gaffe à toi. Il y a des curieux dans le coin.",
+            "Toujours en vie ? Tant mieux. Le milieu aime pas les amateurs."
+        ];
+        const text = randomMsgs[Math.floor(Math.random() * randomMsgs.length)];
+        receivePhoneMessage(contactId, text);
+        addNarrative({ type: "speaker", content: `${GAME_DATA.contacts[contactId].name} : "${text}"` });
+    } else if (state.heat >= 50 && Math.random() < 0.25) {
+        receivePhoneMessage("shadow", "La police gratte autour de toi. J'ai vu des allers-retours suspects. Réduis le heat, vite.");
+        addNarrative({ type: "danger", content: "📱 Vibration soudaine : un message de Shadow." });
+    }
+
     if (checkGameOver()) return;
     updateHUD();
     showFreePlayChoices();
@@ -777,6 +819,17 @@ function meetContact() {
     addNarrative({ type: "speaker", content });
 
     state.contacts[contactId] = (state.contacts[contactId] || 0) + 5;
+    setEnvironment("cafe");
+
+    if (Math.random() < 0.4) {
+        const followups = [
+            "On se dit quoi pour la suite ? J'ai des pistes.",
+            "T'as vu les news ? Le monde devient fou.",
+            "Prends soin de toi. Le heat monte vite ici.",
+            "J'ai un contact qui cherche des gens comme toi. Réfléchis-y."
+        ];
+        receivePhoneMessage(contactId, followups[Math.floor(Math.random() * followups.length)]);
+    }
 
     engine.advanceTime(1);
     if (checkGameOver()) return;
@@ -920,6 +973,90 @@ function addNarrative(scene) {
     container.scrollTop = container.scrollHeight;
 }
 
+function notify(title, text, icon = "🔔", type = "info") {
+    const stack = document.getElementById('notification-stack');
+    if (!stack) return;
+
+    while (stack.children.length >= 3) {
+        stack.removeChild(stack.firstChild);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <div class="toast-body">
+            <div class="toast-title">${title}</div>
+            <div class="toast-text">${text}</div>
+        </div>
+        <button class="toast-close">✕</button>
+    `;
+    toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 250);
+    });
+    stack.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 250);
+    }, 5000);
+}
+
+function setEnvironment(envId) {
+    if (!ENVIRONMENTS[envId]) envId = "chambre";
+    document.body.classList.remove(...Object.keys(ENVIRONMENTS).map(e => 'env-' + e));
+    document.body.classList.add('env-' + envId);
+    const el = document.getElementById('hud-env');
+    if (el) {
+        el.textContent = `${ENVIRONMENTS[envId].icon} ${ENVIRONMENTS[envId].name}`;
+        el.title = "Lieu : " + ENVIRONMENTS[envId].name;
+    }
+}
+
+function updatePhoneBadge() {
+    const badge = document.getElementById('phone-badge');
+    if (!badge) return;
+    const count = engine ? engine.unreadCount() : 0;
+    badge.textContent = count;
+    badge.classList.toggle('btn-hidden', count === 0);
+}
+
+function showPhone() {
+    const state = engine.getState();
+    const container = document.getElementById('phone-list');
+    container.innerHTML = '';
+
+    const msgs = [...(state.messages || [])].reverse();
+
+    if (msgs.length === 0) {
+        container.innerHTML = '<p style="color:#666">Aucun message. Ton téléphone est silencieux...</p>';
+    }
+
+    msgs.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `msg-item ${msg.read ? '' : 'msg-unread'}`;
+        div.innerHTML = `
+            <div class="contact-avatar">${msg.avatar || "📱"}</div>
+            <div class="contact-info">
+                <div class="contact-name">${msg.fromName} <span class="msg-date">${msg.date} — jour ${msg.day}</span></div>
+                <div class="contact-role">${msg.text}</div>
+            </div>
+        `;
+        container.appendChild(div);
+        msg.read = true;
+    });
+
+    updatePhoneBadge();
+    updateHUD();
+    document.getElementById('screen-phone').classList.add('active');
+}
+
+function receivePhoneMessage(fromId, text) {
+    engine.addMessage(fromId, text);
+    updatePhoneBadge();
+}
+
 function updateHUD() {
     const state = engine.getState();
     if (!state) return;
@@ -954,6 +1091,9 @@ function updateHUD() {
         }
     }
     newsEl.textContent = window._newsPool[Math.floor(Math.random() * window._newsPool.length)];
+
+    setEnvironment(CHAPTER_ENV[state.chapter] || "chambre");
+    updatePhoneBadge();
 }
 
 function updateAIStatus() {
@@ -999,17 +1139,34 @@ function showInventory() {
         const item = GAME_DATA.items.find(i => i.id === itemId);
         if (!item) return;
 
-        const owned = item.type === "gear" ? " (équipé)" : "";
+        let actions = "";
+
+        if (item.type === "gear") {
+            const equipped = engine.isEquipped(itemId);
+            actions = `
+                ${equipped
+                    ? `<button class="btn-shop" data-unequip="${item.id}">DÉSÉQUIPER</button>`
+                    : `<button class="btn-shop" data-equip="${item.id}">ÉQUIPER</button>`}
+                <button class="btn-shop" data-sell="${item.id}">VENDRE</button>
+            `;
+        } else if (item.type === "consumable") {
+            actions = `<button class="btn-shop" data-use="${item.id}">UTILISER</button>`;
+        } else if (item.type === "data") {
+            actions = `<button class="btn-shop" data-sell="${item.id}">VENDRE</button>`;
+        } else if (item.type === "phone") {
+            actions = `<button class="btn-shop" data-phone="1">📱 MESSAGES</button>`;
+        }
+
         const div = document.createElement('div');
         div.className = 'inv-item';
         div.innerHTML = `
             <div class="shop-item-info">
-                <div class="inv-item-name">${item.name}${owned}</div>
+                <div class="inv-item-name">${item.name}${item.type === "gear" && engine.isEquipped(itemId) ? " (équipé)" : ""}</div>
                 <div class="inv-item-desc">${item.desc}</div>
             </div>
             <div class="inv-actions">
                 <span class="inv-item-rarity rarity-${item.rarity}">${item.rarity}</span>
-                ${item.type === "consumable" ? `<button class="btn-shop" data-use="${item.id}">UTILISER</button>` : ""}
+                ${actions}
             </div>
         `;
         container.appendChild(div);
@@ -1021,6 +1178,40 @@ function showInventory() {
             addNarrative({ type: result.ok ? "system" : "danger", content: result.msg });
             showInventory();
             updateHUD();
+        });
+    });
+
+    container.querySelectorAll('[data-equip]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const result = engine.equipItem(btn.dataset.equip);
+            addNarrative({ type: result.ok ? "system" : "danger", content: result.msg });
+            showInventory();
+            updateHUD();
+        });
+    });
+
+    container.querySelectorAll('[data-unequip]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const result = engine.unequipItem(btn.dataset.unequip);
+            addNarrative({ type: result.ok ? "system" : "danger", content: result.msg });
+            showInventory();
+            updateHUD();
+        });
+    });
+
+    container.querySelectorAll('[data-sell]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const result = engine.sellItem(btn.dataset.sell);
+            addNarrative({ type: result.ok ? "system" : "danger", content: result.msg });
+            showInventory();
+            updateHUD();
+        });
+    });
+
+    container.querySelectorAll('[data-phone]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('screen-inventory').classList.remove('active');
+            showPhone();
         });
     });
 
@@ -1195,10 +1386,12 @@ function processQueues() {
     if (worldEventQueue.length > 0) {
         const text = worldEventQueue.shift();
         addNarrative({ type: "system", content: `🌐 ${text}` });
+        notify("Actualités", text, "🌐", "info");
     }
     if (heatEventQueue.length > 0) {
         const ev = heatEventQueue.shift();
         addNarrative({ type: "danger", content: ev.text });
+        notify("ALERTE HEAT", ev.text, "🚨", "danger");
         if (ev.threshold >= 90 && !engine.getState().flags.raid) {
             addNarrative({ type: "danger", content: "📢 ON FRAPPE À TA PORTE — Perquisition imminente !" });
             raidChoices();
@@ -1210,6 +1403,7 @@ function processQueues() {
         const ach = GAME_DATA.achievements.find(a => a.id === id);
         if (ach) {
             addNarrative({ type: "success", content: `🏆 SUCCÈS DÉBLOQUÉ : ${ach.icon} ${ach.name} — ${ach.desc}` });
+            notify("Succès débloqué", `${ach.icon} ${ach.name} — ${ach.desc}`, "🏆", "success");
         }
     }
     if (chapterQueue.length > 0) {
@@ -1218,7 +1412,13 @@ function processQueues() {
         if (intro) {
             intro.forEach(scene => addNarrative(scene));
         }
+        const env = CHAPTER_ENV[n] || "chambre";
+        setEnvironment(env);
+        notify("Nouveau chapitre", ENVIRONMENTS[env].name + " — nouvel environnement débloqué", ENVIRONMENTS[env].icon, "info");
         updateHUD();
+    }
+    if (phoneQueue.length > 0) {
+        phoneQueue.shift();
     }
 }
 
@@ -1235,6 +1435,7 @@ function raidEscape() {
     const state = engine.getState();
     addNarrative({ type: "text", content: "Tu sautes par la fenêtre arrière, ton sac à dos sur l'épaule. La police fouille ta chambre vide." });
     const result = engine.doRaid();
+    setEnvironment("planque");
     addNarrative({ type: "system", content: `La police a saisi $${result.lost} mais ton matériel est sauvé.` });
     state.heat = 5;
     state.flags.raid = true;
@@ -1248,6 +1449,7 @@ function raidDestroy() {
     const state = engine.getState();
     addNarrative({ type: "text", content: "Tu jettes tout ton matériel dans l'incinérateur. Chaque disque dur fond devant tes yeux. Tes exploits, tes outils... réduits en cendres." });
     const result = engine.doRaid();
+    setEnvironment("planque");
     addNarrative({ type: "system", content: `La police ne trouve rien. Ton argent est intact. Mais tu as perdu : ${result.gearLost.length > 0 ? result.gearLost.join(", ") : "rien (chanceux)"}` });
     state.heat = 5;
     state.flags.raid = true;
@@ -1260,6 +1462,7 @@ function raidDestroy() {
 function raidHide() {
     const state = engine.getState();
     addNarrative({ type: "text", content: "Tu glisses ton matériel dans un faux mur. La police fouille pendant 3 heures. Ton cœur bat à 180." });
+    setEnvironment("planque");
     const luck = Math.random();
     if (luck < 0.5) {
         addNarrative({ type: "success", content: "Ils ne trouvent rien ! Ton matériel est intact. Tu as gagné gros." });

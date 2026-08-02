@@ -54,6 +54,7 @@
             </div>
             <span id="hud-chapter" class="hud-chapter">ACTE I — L'ÉVEIL</span>
             <div class="hud-right">
+                <span id="hud-env" class="env-label">🏠 Appartement</span>
                 <span id="hud-date">2024</span>
                 <span id="hud-rep" class="rep">Réputation: 0</span>
             </div>
@@ -100,6 +101,7 @@
             <div class="btn-hud-row">
                 <button id="btn-skills" class="btn-hud">[ SKILLS ]</button>
                 <button id="btn-inventory" class="btn-hud">[ INV ]</button>
+                <button id="btn-phone" class="btn-hud btn-phone">📱<span id="phone-badge" class="phone-badge btn-hidden">0</span></button>
                 <button id="btn-network" class="btn-hud">[ RÉSEAU ]</button>
                 <button id="btn-market" class="btn-hud">[ MARCHÉ ]</button>
                 <button id="btn-rivals" class="btn-hud">[ RIVAUX ]</button>
@@ -124,6 +126,16 @@
             <button class="btn-close-overlay">[ FERMER ]</button>
         </div>
     </div>
+
+    <div id="screen-phone" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> 📱 TÉLÉPHONE — MESSAGES</h2>
+            <div id="phone-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="notification-stack" class="notification-stack"></div>
 
     <div id="screen-network" class="screen overlay">
         <div class="overlay-content terminal-text">
