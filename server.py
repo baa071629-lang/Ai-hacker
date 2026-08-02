@@ -72,7 +72,7 @@ PROMPTS = {
     )
 }
 
-MAX_OUTPUT = {"missions": 700, "news": 350, "contacts": 500, "rivals": 300}
+MAX_OUTPUT = {"missions": 700, "news": 800, "contacts": 500, "rivals": 300}
 
 
 def load_config():
@@ -148,7 +148,8 @@ def call_gemini(prompt, max_tokens):
         "generationConfig": {
             "maxOutputTokens": max_tokens,
             "temperature": 0.9,
-            "responseMimeType": "application/json"
+            "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0}
         }
     }
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
@@ -156,6 +157,7 @@ def call_gemini(prompt, max_tokens):
     with urllib.request.urlopen(req, timeout=CONFIG["timeout"]) as resp:
         data = json.loads(resp.read().decode("utf-8"))
     parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    parts = [p for p in parts if not p.get("thought")]
     text = "".join(p.get("text", "") for p in parts)
     usage = data.get("usageMetadata", {})
     tokens = usage.get("promptTokenCount", 0) + usage.get("candidatesTokenCount", 0)
@@ -163,7 +165,12 @@ def call_gemini(prompt, max_tokens):
 
 
 def parse_json(text):
-    text = text.strip()
+    import re
+    text = text.replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
     start = text.find("[")
     if start == -1:
         start = text.find("{")
