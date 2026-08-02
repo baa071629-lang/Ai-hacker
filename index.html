@@ -97,9 +97,12 @@
             </div>
             <div class="btn-hud-row">
                 <button id="btn-skills" class="btn-hud">[ SKILLS ]</button>
-                <button id="btn-inventory" class="btn-hud">[ INVENTAIRE ]</button>
+                <button id="btn-inventory" class="btn-hud">[ INV ]</button>
                 <button id="btn-network" class="btn-hud">[ RÉSEAU ]</button>
-                <button id="btn-save" class="btn-hud">[ SAUVEGARDER ]</button>
+                <button id="btn-market" class="btn-hud">[ MARCHÉ ]</button>
+                <button id="btn-rivals" class="btn-hud">[ RIVAUX ]</button>
+                <button id="btn-achievements" class="btn-hud">[ SUCCÈS ]</button>
+                <button id="btn-save" class="btn-hud">[ SAVE ]</button>
             </div>
         </div>
     </div>
@@ -124,6 +127,31 @@
         <div class="overlay-content terminal-text">
             <h2 class="glow">> RÉSEAU / CONTACTS</h2>
             <div id="network-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="screen-market" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> MARCHÉ DARKNET</h2>
+            <div id="market-info" class="market-info"></div>
+            <div id="market-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="screen-rivals" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> HALL OF FAME — HACKERS ACTIFS</h2>
+            <div id="rival-list"></div>
+            <button class="btn-close-overlay">[ FERMER ]</button>
+        </div>
+    </div>
+
+    <div id="screen-achievements" class="screen overlay">
+        <div class="overlay-content terminal-text">
+            <h2 class="glow">> SUCCÈS</h2>
+            <div id="achievement-list"></div>
             <button class="btn-close-overlay">[ FERMER ]</button>
         </div>
     </div>

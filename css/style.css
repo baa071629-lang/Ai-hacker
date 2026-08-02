@@ -692,6 +692,97 @@ body {
 .status-hostile { color: var(--red); }
 .status-dead { color: #666; }
 
+/* MARKET */
+#market-list, #rival-list, #achievement-list {
+    width: 100%;
+}
+
+.market-info {
+    font-size: 11px;
+    color: var(--yellow);
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+.shop-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.shop-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-shop {
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    flex-shrink: 0;
+    min-height: 32px;
+}
+
+.btn-shop:hover:not(:disabled) {
+    background: var(--green);
+    color: var(--bg);
+}
+
+.btn-shop:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.btn-shop:disabled, .btn-shop-owned {
+    border-color: var(--border);
+    color: var(--green-dark);
+    cursor: default;
+    opacity: 0.5;
+}
+
+.inv-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* ACHIEVEMENTS */
+.ach-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.ach-icon {
+    width: 28px;
+    font-size: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.ach-locked {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+
+.ach-status {
+    font-size: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 /* GAMEOVER */
 #screen-gameover .terminal-text {
     text-align: center;
