@@ -4,6 +4,7 @@ let narrativeQueue = [];
 let worldEventQueue = [];
 let heatEventQueue = [];
 let achievementQueue = [];
+let chapterQueue = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     engine = new GameEngine();
@@ -12,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.gameUI = {
         pushWorldEvent: (text) => worldEventQueue.push(text),
         pushHeatEvent: (text, threshold) => heatEventQueue.push({ text, threshold }),
-        unlockAchievement: (id) => achievementQueue.push(id)
+        unlockAchievement: (id) => achievementQueue.push(id),
+        pushChapter: (n) => chapterQueue.push(n)
     };
 
     if (saveManager.hasSave()) {
@@ -235,6 +237,16 @@ function showChoices(choices) {
             }
 
             container.innerHTML = '';
+
+            if (choice.endPath) {
+                if (choice.effects) {
+                    applyEffectsSafe(choice.effects);
+                }
+                engine.getState().flags.final_path = choice.endPath;
+                container.innerHTML = '';
+                showEnding();
+                return;
+            }
 
             if (choice.custom) {
                 choice.custom();
@@ -702,6 +714,7 @@ function sellExploits() {
     const state = engine.getState();
     const price = Math.floor(Math.random() * 300 + 150);
     state.money += price;
+    state.moneyEarned += price;
     state.heat = Math.min(100, state.heat + 3);
 
     addNarrative({ type: "action", content: "💼 VENTE DE DONNÉES" });
@@ -915,6 +928,13 @@ function updateHUD() {
     document.getElementById('hud-money').textContent = `$${state.money}`;
     document.getElementById('hud-date').textContent = `${state.day}/${state.month}/${state.year}`;
     document.getElementById('hud-rep').textContent = `Rep: ${state.rep}`;
+
+    const chapterEl = document.getElementById('hud-chapter');
+    const chapterInfo = STORY.chapters[state.chapter];
+    if (chapterEl && chapterInfo) {
+        chapterEl.textContent = chapterInfo.title;
+        chapterEl.title = "Objectif : " + chapterInfo.goal;
+    }
 
     document.getElementById('bar-tech').style.width = `${state.stats.tech}%`;
     document.getElementById('val-tech').textContent = state.stats.tech;
@@ -1192,6 +1212,14 @@ function processQueues() {
             addNarrative({ type: "success", content: `🏆 SUCCÈS DÉBLOQUÉ : ${ach.icon} ${ach.name} — ${ach.desc}` });
         }
     }
+    if (chapterQueue.length > 0) {
+        const n = chapterQueue.shift();
+        const intro = STORY.chapterIntros[n];
+        if (intro) {
+            intro.forEach(scene => addNarrative(scene));
+        }
+        updateHUD();
+    }
 }
 
 function raidChoices() {
@@ -1253,16 +1281,55 @@ function showGameOver() {
     const state = engine.getState();
     const ending = engine.getEnding();
 
+    document.getElementById('gameover-title').className = 'glow red';
+    document.getElementById('gameover-title').textContent = '> GAME OVER';
+
     document.getElementById('gameover-reason').innerHTML = `
         <p>${state.gameoverReason}</p>
         <h3 class="glow" style="margin-top:20px">${ending.title}</h3>
         <p style="margin-top:10px;color:#00aa2a">${ending.text}</p>
     `;
 
-    document.getElementById('gameover-stats').innerHTML = `
-        <p>Jours vécus: ${state.daysAlive} | Missions: ${state.missionsCompleted} | Hacks: ${state.hacksCompleted}</p>
-        <p>Argent: $${state.money} | Réputation: ${state.rep} | Heat: ${state.heat} | Succès: ${state.achievements.length}/${GAME_DATA.achievements.length}</p>
-    `;
+    document.getElementById('gameover-stats').innerHTML = careerStats(state);
 
     showScreen('screen-gameover');
+}
+
+function showEnding() {
+    const state = engine.getState();
+    state.ended = true;
+    saveManager.deleteSave();
+    engine.checkAchievements();
+    updateAIStatus();
+
+    const ending = engine.getEnding();
+
+    document.getElementById('gameover-title').className = 'glow';
+    document.getElementById('gameover-title').textContent = '> FIN DE PARTIE';
+
+    document.getElementById('gameover-reason').innerHTML = `
+        <h3 class="glow">${ending.title}</h3>
+        <p style="margin-top:10px;color:#00aa2a">${ending.text}</p>
+    `;
+
+    document.getElementById('gameover-stats').innerHTML = careerStats(state);
+
+    showScreen('screen-gameover');
+}
+
+function careerStats(state) {
+    const achIcons = GAME_DATA.achievements
+        .filter(a => state.achievements.includes(a.id))
+        .map(a => a.icon)
+        .join(" ");
+
+    const recap = `
+        <p class="glow" style="margin:14px 0 6px">— RÉCAP DE CARRIÈRE —</p>
+        <p>Actes vécus : ${state.chapter}/5 | Jours : ${state.daysAlive} | Missions : ${state.missionsCompleted} | Hacks : ${state.hacksCompleted}</p>
+        <p>Argent gagné : <span class="money">$${state.moneyEarned}</span> | En poche : $${state.money}</p>
+        <p>Réputation : ${state.rep} | Heat : ${state.heat} | Streak : ${state.streak} jour(s)</p>
+        <p>Succès : ${state.achievements.length}/${GAME_DATA.achievements.length} ${achIcons ? "— " + achIcons : ""}</p>
+        <p style="margin-top:8px;color:#666">Quelle carrière, hackeur. Le darknet se souviendra de toi.</p>
+    `;
+    return recap;
 }

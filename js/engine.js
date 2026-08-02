@@ -13,6 +13,7 @@ class GameEngine {
             pseudo: pseudo,
             origin: origin,
             money: 100,
+            moneyEarned: 0,
             rep: 0,
             risk: 0,
             heat: 0,
@@ -20,6 +21,7 @@ class GameEngine {
             year: 2026,
             day: 1,
             totalDays: 0,
+            chapter: 1,
             stats: {
                 tech: originData.bonuses.tech,
                 social: originData.bonuses.social,
@@ -51,7 +53,8 @@ class GameEngine {
             rivalActivity: {},
             worldDay: 0,
             raid: false,
-            arrested: false
+            arrested: false,
+            ended: false
         };
 
         originData.startSkills.forEach(skill => {
@@ -101,7 +104,10 @@ class GameEngine {
     applyEffects(effects) {
         if (!effects) return;
         const s = this.state;
-        if (effects.money) s.money += effects.money;
+        if (effects.money) {
+            s.money += effects.money;
+            if (effects.money > 0) s.moneyEarned += effects.money;
+        }
         if (effects.rep) s.rep = Math.max(0, s.rep + effects.rep);
         if (effects.risk) s.risk = this.clamp(s.risk + effects.risk, 0, 100);
         if (effects.heat) s.heat = this.clamp(s.heat + effects.heat, 0, 100);
@@ -171,7 +177,27 @@ class GameEngine {
         this.updateRivals(days);
         this.checkWorldEvents();
         this.checkHeatEvents();
+        this.checkChapter();
         this.checkAchievements();
+    }
+
+    checkChapter() {
+        const s = this.state;
+        const defs = [
+            { n: 2, cond: () => s.totalDays >= 10 || s.hacksCompleted >= 5 },
+            { n: 3, cond: () => s.totalDays >= 30 || s.rep >= 25 },
+            { n: 4, cond: () => s.totalDays >= 60 || s.heat >= 50 },
+            { n: 5, cond: () => s.totalDays >= 90 || s.rep >= 60 }
+        ];
+        defs.forEach(d => {
+            if (s.chapter < d.n && d.cond()) {
+                s.chapter = d.n;
+                s.currentChapter = "acte_" + d.n;
+                if (window.gameUI && window.gameUI.pushChapter) {
+                    window.gameUI.pushChapter(d.n);
+                }
+            }
+        });
     }
 
     updateMarket() {
@@ -259,6 +285,7 @@ class GameEngine {
         const events = [...STORY.earlyEvents, ...STORY.monthEvents];
         return events.filter(event => {
             if (this.state.completedEvents.includes(event.id)) return false;
+            if (event.chapter && this.state.chapter < event.chapter) return false;
             if (event.trigger) {
                 if (event.trigger.rep && this.state.rep < event.trigger.rep) return false;
                 if (event.trigger.risk && this.state.risk < event.trigger.risk) return false;
@@ -270,12 +297,16 @@ class GameEngine {
     }
 
     getEnding() {
-        if (this.state.risk > 80) return STORY.endings.caught;
-        if (this.state.stress > 80) return STORY.endings.burnout;
-        if (this.state.rep >= 70 && this.state.risk < 30) return STORY.endings.white_hat;
-        if (this.state.rep >= 50 && this.state.risk >= 50) return STORY.endings.gray_hat;
-        if (this.state.rep >= 80 && this.state.risk >= 60) return STORY.endings.legend;
-        if (this.state.risk >= 70) return STORY.endings.black_hat;
+        const s = this.state;
+        if (s.flags.final_path === "white") return STORY.endings.white_hat;
+        if (s.flags.final_path === "black") return s.rep >= 70 ? STORY.endings.legend : STORY.endings.black_hat;
+        if (s.flags.final_path === "gray") return s.rep >= 70 ? STORY.endings.legend : STORY.endings.gray_hat;
+        if (s.risk > 80) return STORY.endings.caught;
+        if (s.stress > 80) return STORY.endings.burnout;
+        if (s.rep >= 70 && s.risk < 30) return STORY.endings.white_hat;
+        if (s.rep >= 50 && s.risk >= 50) return STORY.endings.gray_hat;
+        if (s.rep >= 80 && s.risk >= 60) return STORY.endings.legend;
+        if (s.risk >= 70) return STORY.endings.black_hat;
         return STORY.endings.gray_hat;
     }
 

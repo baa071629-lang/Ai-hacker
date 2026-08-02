@@ -119,7 +119,7 @@ const STORY = {
                 { type: "text", content: "Des threads : \"Tutoriels SQLi\", \"Evasion d'antivirus\", \"OSINT pour débutants\"." },
                 { type: "text", content: "Un thread pinclé : <strong>\"Règle n°1 : Ne jamais hack pour le plaisir. Hack pour apprendre.\"</strong>" },
                 { type: "text", content: "Tu scrolles. Tu vois des noms. Des skills. Des réputations." },
-                { type: "text", content: "Et tu vois un thread qui pulse : <span class='danger'>\"RECUTEMENT : Opération Phantom — 50 BTC\"</span>" }
+                { type: "text", content: "Et tu vois un thread qui pulse : <span class='danger'>\"RECRUTEMENT : Opération Phantom — 50 BTC\"</span>" }
             ],
             choices: [
                 { text: "Lire le thread Phantom", effects: { rep: 3, risk: 5 }, next: "phantom_offer" },
@@ -141,12 +141,90 @@ const STORY = {
                 { text: "Refuser et signaler le post", effects: { rep: -5, risk: 5 }, next: "phantom_refuse" },
                 { text: "Doubler la mise : \"Je veux 100 BTC\"", effects: { rep: 8, risk: 15 }, next: "phantom_negotiate" }
             ]
+        },
+        {
+            id: "first_big_heist",
+            chapter: 2,
+            trigger: { missions: 4 },
+            text: [
+                { type: "action", content: "Un fixer te contacte. La grosse espèce : une boîte de logistique laisse traîner 40 000 mots de passe en clair." },
+                { type: "text", content: "\"20% pour toi. Le reste pour le client. Pas de questions.\"" },
+                { type: "text", content: "Tu peux prendre les données et les vendre. Ou tout effacer. Ou les fuiter aux journalistes." }
+            ],
+            choices: [
+                { text: "Vendre les données (le gros lot)", effects: { money: 4000, rep: 6, heat: 12 }, next: "heist_sold" },
+                { text: "Tout effacer (propre)", effects: { rep: 4, heat: 3 }, next: "heist_clean" },
+                { text: "Fuirter aux médias", effects: { rep: 8, heat: 15, money: 500 }, next: "heist_leaked" }
+            ]
+        },
+        {
+            id: "phantom_op",
+            chapter: 3,
+            trigger: { missions: 8 },
+            text: [
+                { type: "action", content: "LA NUIT DU PHANTOM" },
+                { type: "text", content: "23h47. Le réseau de la banque s'étend devant toi. Une forteresse numérique : 3 pare-feu, 2 IDS, des milliers de capteurs." },
+                { type: "text", content: "Mais tu connais la faille. La vraie. Celle que le plan t'a donnée." },
+                { type: "text", content: "Tu es à l'intérieur. Les 50 BTC sont à portée de main. La preuve aussi. Tout est possible." },
+                { type: "danger", content: "Chaque seconde compte. Le SOC de la banque détecte déjà une anomalie." }
+            ],
+            choices: [
+                { text: "Installer la preuve et sortir (propre)", effects: { rep: 10, risk: 10 }, next: "phantom_pure" },
+                { text: "Prendre 5% au passage (personne ne verra)", effects: { money: 2500, rep: 5, risk: 18 }, next: "phantom_gray" },
+                { text: "Tout siphonner et disparaître", effects: { money: 15000, rep: 15, risk: 35, heat: 25 }, next: "phantom_black" }
+            ]
+        },
+        {
+            id: "betrayal",
+            chapter: 3,
+            trigger: { rep: 30 },
+            text: [
+                { type: "action", content: "48h après Phantom, le forum s'agite. Un message codé circule : \"Quelqu'un a parlé. La DGSI sait tout.\"" },
+                { type: "text", content: "Shadow se tait. Viper se cache. Le Comptable a disparu." },
+                { type: "danger", content: "Et toi, tu viens de voir une voiture noire garée en bas de chez toi. Pour la deuxième fois aujourd'hui." }
+            ],
+            choices: [
+                { text: "Accuser Shadow", effects: { contact_shadow: -30, rep: -5 }, next: "accuse_shadow" },
+                { text: "Accuser Viper", effects: { contact_viper: -30, risk: 5 }, next: "accuse_viper" },
+                { text: "Enquêter toi-même sur les traces", effects: { tech: 8, risk: 10 }, next: "investigate_mole" }
+            ]
+        },
+        {
+            id: "the_mole",
+            chapter: 4,
+            trigger: { heat: 45 },
+            text: [
+                { type: "action", content: "Le compte fantôme se connecte. Tu le sais parce que tu l'attendais. Il est là, maintenant." },
+                { type: "text", content: "Trois personnes pouvaient connaître l'heure exacte de la descente. Trois." },
+                { type: "text", content: "Doc, le vendeur d'outils. La Rouge, la trader de données. Le Renard, l'intermédiaire." }
+            ],
+            choices: [
+                { text: "Confronter Doc", effects: { contact_doc: -20 }, next: "mole_doc" },
+                { text: "Confronter La Rouge", effects: { contact_rouge: -20 }, next: "mole_rouge" },
+                { text: "Confronter Le Renard", effects: { contact_fox: -20 }, next: "mole_fox" }
+            ]
+        },
+        {
+            id: "final_choice",
+            chapter: 5,
+            trigger: { missions: 15 },
+            text: [
+                { type: "action", content: "LES TROIS PORTES" },
+                { type: "text", content: "La police, le milieu, ta propre conscience : tout converge vers un choix. Il n'y a plus de demi-mesure." },
+                { type: "text", content: "Trois portes s'ouvrent. Une seule mène quelque part où tu pourras te regarder dans un miroir." }
+            ],
+            choices: [
+                { text: "🚪 LA SORTIE — passer un accord avec la DGSI", effects: {}, next: "final_white" },
+                { text: "🚪 L'OMBRE — prendre l'argent et disparaître", effects: {}, next: "final_gray" },
+                { text: "🚪 LE TOUT POUR LE TOUT — le dernier gros coup", effects: {}, next: "final_black" }
+            ]
         }
     ],
 
     monthEvents: [
         {
             id: "police_knock",
+            chapter: 4,
             trigger: { risk: 30, month: 3 },
             text: [
                 { type: "action", content: "3h du matin. Un coup à la porte." },
@@ -164,6 +242,7 @@ const STORY = {
         },
         {
             id: "rival_offer",
+            chapter: 2,
             trigger: { rep: 20, month: 4 },
             text: [
                 { type: "action", content: "Un email chiffré. De Viper." },
@@ -179,6 +258,353 @@ const STORY = {
             ]
         }
     ],
+
+    chapters: {
+        1: { title: "ACTE I — L'ÉVEIL", goal: "Survis. Apprends. Quelqu'un t'a vu sur le site de la PME." },
+        2: { title: "ACTE II — LA DESCENTE", goal: "Fais tes preuves. Une grosse opération se prépare sur le darknet." },
+        3: { title: "ACTE III — LA CRISE", goal: "L'Opération Phantom approche. Choisis ton camp." },
+        4: { title: "ACTE IV — LA TRAQUE", goal: "La police te cherche. Trouve la taupe avant qu'elle ne te livre." },
+        5: { title: "ACTE V — LA RÉSOLUTION", goal: "Choisis ta sortie. Une dernière fois." }
+    },
+
+    chapterIntros: {
+        2: [
+            { type: "divider" },
+            { type: "action", content: "ACTE II — LA DESCENTE" },
+            { type: "text", content: "Le Forum des Ombres bourdonne. Des rumeurs de grosse opération circulent : quelqu'un prépare quelque chose de gros, et tout le monde veut une part." },
+            { type: "text", content: "Ton nom commence à circuler. Pas seulement sur le forum. Ailleurs aussi." },
+            { type: "system", content: "Objectif : faire tes preuves. Une opération majeure se prépare." }
+        ],
+        3: [
+            { type: "divider" },
+            { type: "action", content: "ACTE III — LA CRISE" },
+            { type: "text", content: "Le jour de l'Opération Phantom approche. La rumeur devient réelle : le réseau d'une banque, un PoC, 50 BTC. Tout le milieu retient son souffle." },
+            { type: "danger", content: "Mais tu n'es plus seul. Quelqu'un te suit. Tu sens les regards dans la rue, les voitures garées trop longtemps." },
+            { type: "system", content: "Objectif : survivre à l'Opération Phantom. Choisis ton camp." }
+        ],
+        4: [
+            { type: "divider" },
+            { type: "action", content: "ACTE IV — LA TRAQUE" },
+            { type: "text", content: "La DGSI a ouvert un dossier. Ton quartier est quadrillé. Le heat est partout, dans les journaux, dans tes rêves." },
+            { type: "text", content: "Et il y a une taupe sur le forum. Quelqu'un vend du monde. Quelqu'un te vend, peut-être déjà." },
+            { type: "system", content: "Objectif : identifier la taupe avant qu'elle ne te livre." }
+        ],
+        5: [
+            { type: "divider" },
+            { type: "action", content: "ACTE V — LA RÉSOLUTION" },
+            { type: "text", content: "Tout converge. L'argent, la gloire, la peur. Le milieu ne pardonne pas la demi-mesure, et la loi non plus." },
+            { type: "text", content: "Il est temps de choisir ta sortie. Une dernière fois." },
+            { type: "system", content: "Objectif : choisir ta voie et t'y tenir." }
+        ]
+    },
+
+    safe_learning: {
+        text: [
+            { type: "text", content: "Tu restes dans les tutoriels. SQLi, XSS, evasion AV. Tu dévores tout." },
+            { type: "system", content: "Compétence Web Hacking +10. La théorie, c'est la moitié du jeu." },
+            { type: "text", content: "Mais au fond de toi, le thread Phantom te brûle encore. 50 BTC. Tu y repenseras." }
+        ],
+        choices: [
+            { text: "Reprendre le travail", effects: { skill_web_hacking: 10 }, next: null }
+        ]
+    },
+
+    phantom_join: {
+        text: [
+            { type: "action", content: "Tu réponds au post. 3 minutes plus tard, un canal chiffré s'ouvre." },
+            { type: "speaker", content: "??" },
+            { type: "text", content: "\"Bienvenue à bord. Contacte Le Comptable. Il te donnera les détails.\"" },
+            { type: "text", content: "Le Comptable. Encore un pseudonyme. Encore un inconnu." },
+            { type: "system", content: "Tu es sur les rôles de l'Opération Phantom. Le risque est réel. La promesse : 50 BTC." }
+        ],
+        choices: [
+            { text: "Préparer le terrain", effects: { skill_exploits: 5, money: -150 }, next: null },
+            { text: "Continuer à bosser en attendant", effects: { rep: 3 }, next: null }
+        ]
+    },
+
+    phantom_refuse: {
+        text: [
+            { type: "text", content: "Tu fermes le post. 50 BTC. Tu préfères rester en vie." },
+            { type: "system", content: "Shadow avait raison : choisir, c'est survivre. Ta prudence te rend service." }
+        ],
+        choices: [
+            { text: "Continuer sa route", effects: {}, next: null }
+        ]
+    },
+
+    phantom_negotiate: {
+        text: [
+            { type: "action", content: "Tu réponds : \"100 BTC, ou je passe mon tour.\"" },
+            { type: "action", content: "Silence. Puis une réponse glaciale." },
+            { type: "speaker", content: "??" },
+            { type: "text", content: "\"Tu as du culot. 70. Dernière offre.\"" },
+            { type: "text", content: "Tu as doublé ta mise. Le milieu retiendra ton nom." },
+            { type: "system", content: "L'Opération Phantom te considère désormais comme un acteur." }
+        ],
+        choices: [
+            { text: "Accepter les 70 BTC", effects: { rep: 7, risk: 10 }, next: null }
+        ]
+    },
+
+    viper_job: {
+        text: [
+            { type: "speaker", content: "Viper" },
+            { type: "text", content: "\"Un transfert. 200 BTC. La cible : un fonds d'investissement qui blanchit de l'argent sale. Tu piges le réseau, tu ouvres une porte, tu sors. Moi je m'occupe du reste.\"" },
+            { type: "text", content: "C'est du gros. Du très gros. Si ça pue, ça pue jusqu'au fond." },
+            { type: "danger", content: "Mais Viper ne paie pas pour rien. Et 200 BTC, c'est une vie entière." }
+        ],
+        choices: [
+            { text: "Accepter — \"Je suis partant.\"", effects: { rep: 8, risk: 15, money: 3000 }, next: "viper_accepted" },
+            { text: "Refuser poliment", effects: { rep: -3 }, next: null },
+            { text: "En parler à Shadow", effects: { contact_shadow: 10 }, next: "shadow_warning_viper" }
+        ]
+    },
+
+    viper_accepted: {
+        text: [
+            { type: "text", content: "Trois jours plus tard, un colis arrive. Une clé USB blindée. Un fichier : les plans du réseau." },
+            { type: "text", content: "Tu passes la semaine à cartographier la cible. Chaque nœud, chaque pare-feu, chaque faille." },
+            { type: "system", content: "Tu as appris plus en une semaine que dans toute ta carrière." }
+        ],
+        choices: [
+            { text: "Continuer", effects: { skill_reseaux: 10, heat: 5 }, next: null }
+        ]
+    },
+
+    shadow_warning_viper: {
+        text: [
+            { type: "speaker", content: "Shadow" },
+            { type: "text", content: "\"Viper vendrait sa mère pour un fichier. Si tu bosses pour lui, tu bosses pour personne.\"" },
+            { type: "system", content: "Shadow t'a mis en garde. Viper t'en voudra peut-être." }
+        ],
+        choices: [
+            { text: "Noter le conseil", effects: {}, next: null }
+        ]
+    },
+
+    heist_sold: {
+        text: [
+            { type: "system", content: "Le client est satisfait. Mais des boîtes entières de données volées circulent maintenant." },
+            { type: "danger", content: "Quelqu'un, quelque part, a fait le lien entre cette fuite et toi." }
+        ],
+        choices: [
+            { text: "Continuer", effects: {}, next: null }
+        ]
+    },
+
+    heist_clean: {
+        text: [
+            { type: "text", content: "Tu effaces tout. Les serveurs, les sauvegardes, les logs. Quarante mille mots de passe qui ne verront jamais le jour." },
+            { type: "system", content: "Personne ne saura ce que tu as fait. Sauf toi. Et Shadow, peut-être." }
+        ],
+        choices: [
+            { text: "Continuer", effects: { contact_shadow: 5 }, next: null }
+        ]
+    },
+
+    heist_leaked: {
+        text: [
+            { type: "text", content: "Le lendemain, la boîte fait la une : \"Fuite massive chez un géant de la logistique — des données de clients exposées\"." },
+            { type: "text", content: "Les journalistes crient à l'alerte. La boîte s'excuse. Le milieu te respecte." },
+            { type: "danger", content: "Et la DGSI ajoute une ligne à ton dossier." }
+        ],
+        choices: [
+            { text: "Continuer", effects: {}, next: null }
+        ]
+    },
+
+    phantom_pure: {
+        text: [
+            { type: "text", content: "Tu installes la preuve. Un screencap, un fichier de logs, la signature du PoC. Puis tu sors comme une ombre." },
+            { type: "speaker", content: "??" },
+            { type: "text", content: "\"Tu as tenu parole. La preuve est propre. 50 BTC pour toi.\"" },
+            { type: "system", content: "L'Opération Phantom est un succès. Le milieu te voit comme quelqu'un de fiable." },
+            { type: "text", content: "Mais dans l'ombre, quelqu'un a pris ton empreinte. Et il n'oublie jamais." }
+        ],
+        choices: [
+            { text: "Disparaître dans la nuit", effects: { rep: 10 }, next: null }
+        ]
+    },
+
+    phantom_gray: {
+        text: [
+            { type: "text", content: "Tu copies 5% des transactions. Une goutte d'eau dans l'océan de la banque. Personne ne le verra. Personne ne devrait." },
+            { type: "text", content: "Mais les comptes ne collent pas exactement. Et le SOC est déjà en alerte." },
+            { type: "danger", content: "Tu es sorti. Avec l'argent. Mais la balance de la banque ne ferme pas à zéro." }
+        ],
+        choices: [
+            { text: "Espérer que ça se tasse", effects: { heat: 10 }, next: null }
+        ]
+    },
+
+    phantom_black: {
+        text: [
+            { type: "text", content: "Tu ouvres les vannes. Des millions glissent vers tes adresses intermédiaires. Le SOC s'affole. Les alarmes crépitent." },
+            { type: "action", content: "Tu cours. Littéralement. Chaque saut de proxy te rapproche de la sortie." },
+            { type: "danger", content: "Le lendemain, la banque annonce un vol de 14 millions d'euros. Ta photo est sur tous les écrans du monde." },
+            { type: "system", content: "Tu es devenu l'homme le plus recherché de la cybercriminalité française." }
+        ],
+        choices: [
+            { text: "Réfléchir à la suite", effects: {}, next: null }
+        ]
+    },
+
+    accuse_shadow: {
+        text: [
+            { type: "speaker", content: "Shadow" },
+            { type: "text", content: "\"Tu me prends pour une taupe ? Moi ? Après tout ce que j'ai fait pour toi ?\"" },
+            { type: "action", content: "La connexion se coupe. Shadow ne te reparle plus jamais." },
+            { type: "danger", content: "Et le lendemain, tu comprends : ce n'était pas Shadow. C'était Viper. Tu as perdu ton seul vrai mentor." }
+        ],
+        choices: [
+            { text: "Vivre avec", effects: {}, next: null }
+        ]
+    },
+
+    accuse_viper: {
+        text: [
+            { type: "speaker", content: "Viper" },
+            { type: "text", content: "\"Moi ? Une taupe ? J'ai des clients qui paient pour rester discrets, pas pour parler.\"" },
+            { type: "danger", content: "Le soir même, ton appartement est cambriolé. Rien n'est pris. Juste un message : \"Range ta langue.\"" },
+            { type: "text", content: "C'était une menace. Tu comprends que tu as visé juste, ou presque." }
+        ],
+        choices: [
+            { text: "Baisser la tête", effects: { heat: 8 }, next: null }
+        ]
+    },
+
+    investigate_mole: {
+        text: [
+            { type: "action", content: "Tu passes 3 nuits à tracer les logs du forum. Les timestamps, les adresses, les habitudes." },
+            { type: "text", content: "Et tu trouves quelque chose : un compte qui se connecte toujours 10 minutes avant les descentes. Toujours." },
+            { type: "system", content: "Tu as trouvé le schéma. Tu sais où chercher, maintenant." }
+        ],
+        choices: [
+            { text: "Garder le secret", effects: { skill_osint: 8 }, next: null }
+        ]
+    },
+
+    mole_doc: {
+        text: [
+            { type: "speaker", content: "Doc" },
+            { type: "text", content: "\"Moi ? La taupe ? Je vends des clés USB, pas des gens !\"" },
+            { type: "action", content: "Son indignation est sincère. Mais ton accusation a laissé une trace." },
+            { type: "system", content: "Doc est innocent. Tu l'as vexé. Relation Doc -20." }
+        ],
+        choices: [
+            { text: "Continuer la traque", effects: {}, next: null }
+        ]
+    },
+
+    mole_rouge: {
+        text: [
+            { type: "speaker", content: "La Rouge" },
+            { type: "text", content: "\"Je trade des données, je ne trahis pas. Mais toi, tu viens de faire un choix.\"" },
+            { type: "danger", content: "Ses yeux ne mentent pas. Elle est froide, mais pas traîtresse. Le Renard, lui..." }
+        ],
+        choices: [
+            { text: "Comprendre", effects: {}, next: null }
+        ]
+    },
+
+    mole_fox: {
+        text: [
+            { type: "speaker", content: "Le Renard" },
+            { type: "text", content: "\"Tu es plus malin que je pensais.\"" },
+            { type: "action", content: "Le Renard sourit. Largement. Trop largement." },
+            { type: "text", content: "\"Mais je ne suis pas la taupe, mon petit. Je suis le courtier. Les deux camps me paient. C'est mieux, comme business.\"" },
+            { type: "danger", content: "La vraie taupe, c'était Viper. Toujours Viper. Le Renard te le confirme sans le vouloir." },
+            { type: "system", content: "Tu sais enfin. La traque peut commencer." }
+        ],
+        choices: [
+            { text: "Reconstruire la vérité", effects: { rep: 5 }, next: null }
+        ]
+    },
+
+    police_calm: {
+        text: [
+            { type: "text", content: "Tu ouvres. Deux agents de la DGSI. Cartes badgées, regards fatigués." },
+            { type: "speaker", content: "Agent" },
+            { type: "text", content: "\"Bonsoir. On mène une enquête sur une série de piratages dans le quartier. Vous n'avez rien remarqué d'anormal ?\"" },
+            { type: "text", content: "Ton cœur tape dans ta poitrine. Mais tu souris. \"Rien du tout, désolé.\"" },
+            { type: "system", content: "Ils partent sans insister. Cette fois. Le heat retombe légèrement." }
+        ],
+        choices: [
+            { text: "Souffler", effects: { heat: -10 }, next: null }
+        ]
+    },
+
+    police_flee: {
+        text: [
+            { type: "text", content: "Tu sors par la fenêtre arrière. Le vent glacial. Tu cours pieds nus dans la ruelle." },
+            { type: "text", content: "Derrière toi, la porte claque. Les agents rentrent. Ils ne trouvent que ton appartement vide." },
+            { type: "danger", content: "Mais ils ont vu ton visage. Et ils ont un mandat." }
+        ],
+        choices: [
+            { text: "Disparaître quelques jours", effects: { risk: 20, heat: 10, money: -200 }, next: null }
+        ]
+    },
+
+    police_destroy: {
+        text: [
+            { type: "text", content: "Tu jettes tout le matériel dans le broyeur. Les disques, les clés USB, le routeur, tout." },
+            { type: "text", content: "Les agents fouillent. Trois heures. Ils repartent bredouilles." },
+            { type: "system", content: "Tu as perdu ton matos, mais tu es libre. Pour l'instant." }
+        ],
+        choices: [
+            { text: "Reconstruire", effects: { heat: -15 }, next: "destroy_aftermath" }
+        ]
+    },
+
+    destroy_aftermath: {
+        text: [
+            { type: "text", content: "La semaine suivante, un mot glissé sous ta porte : une adresse, un horaire, un code." },
+            { type: "speaker", content: "Shadow" },
+            { type: "text", content: "\"Un ami t'a vu sans matos. Viens, j'ai un truc pour toi.\"" },
+            { type: "system", content: "Shadow t'offre un vieux laptop blindé. Contact Shadow +15." }
+        ],
+        choices: [
+            { text: "Accepter", effects: { contact_shadow: 15, skill_python: 3 }, next: null }
+        ]
+    },
+
+    final_white: {
+        text: [
+            { type: "text", content: "Tu appelles le numéro que tu as gardé précieusement. Celui de l'agent qui t'avait rendu visite." },
+            { type: "speaker", content: "Agent" },
+            { type: "text", content: "\"Vous avez pris votre décision ?\"" },
+            { type: "text", content: "\"Oui. J'ai des informations. Beaucoup d'informations.\"" },
+            { type: "text", content: "Tu déroules tout : le forum, Viper, les opérations, les noms, les adresses." },
+            { type: "system", content: "La DGSI remonte le réseau en 48 heures. 14 arrestations. Ta tête reste sur tes épaules." }
+        ],
+        choices: [
+            { text: "Signer la déposition", effects: {}, endPath: "white" }
+        ]
+    },
+
+    final_gray: {
+        text: [
+            { type: "text", content: "Tu vides les comptes. Les wallets, les cachettes, les coffres. Tout." },
+            { type: "text", content: "Un billet d'avion. Une destination sans extradition. Un nouveau nom, un nouveau visage, une nouvelle vie." },
+            { type: "system", content: "Quelque part dans le monde, un homme sirote un café en regardant l'océan. Personne ne sait qui il est. Personne." }
+        ],
+        choices: [
+            { text: "Disparaître", effects: {}, endPath: "gray" }
+        ]
+    },
+
+    final_black: {
+        text: [
+            { type: "action", content: "LE DERNIER COUP" },
+            { type: "text", content: "Tu prépares la plus grande opération de ta carrière : le réseau central d'une banque, les transferts internationaux, une seule nuit." },
+            { type: "text", content: "Six heures de tension pure. Trois alarmes. Deux sauvegardes inespérées." },
+            { type: "system", content: "À l'aube, tu es plus riche que tu ne l'as jamais rêvé. Et ton nom est gravé dans l'histoire du darknet." }
+        ],
+        choices: [
+            { text: "Devenir la légende", effects: {}, endPath: "black" }
+        ]
+    },
 
     endings: {
         white_hat: {
