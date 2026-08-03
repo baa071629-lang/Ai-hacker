@@ -22,12 +22,23 @@ from urllib.parse import urlparse
 DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(DIR, "server_config.json")
 BUDGET_PATH = os.path.join(DIR, "server_budget.json")
+BUDGET_GROQ_PATH = os.path.join(DIR, "server_budget_groq.json")
 
 DEFAULTS = {
     "api_key": "",
     "model": "gemini-2.5-flash",
+    "groq_api_key": "",
+    "groq_model": "llama-3.3-70b-versatile",
+    "provider_roles": {
+        "missions": "gemini",
+        "news": "groq",
+        "contacts": "groq",
+        "rivals": "groq"
+    },
     "daily_budget_requests": 60,
     "daily_budget_tokens": 100000,
+    "groq_daily_budget_requests": 400,
+    "groq_daily_budget_tokens": 2000000,
     "timeout": 60
 }
 
@@ -55,7 +66,9 @@ PROMPTS = {
         "Génère un tableau JSON de 8 dépêches d'actualité cyber en français, une phrase chacune "
         "(max 140 caractères), style fil d'actualité. Mélange : darknet, police, fuites de données, "
         "crypto, vulnérabilités, anecdotes de hackers. 2 d'entre elles doivent réagir à la situation "
-        "du joueur : {context}. Réponds UNIQUEMENT avec le tableau JSON, sans texte autour."
+        "du joueur : {context}. Réponds UNIQUEMENT avec un tableau JSON de chaînes de caractères, "
+        "SANS objet englobant, sans texte autour.\n"
+        "Exemple de format attendu : [\"dépêche un\", \"dépêche deux\", \"dépêche trois\"]"
     ),
     "contacts": (
         "Tu es l'auteur d'un jeu de hacker français. Pour chaque contact, écris UNE réplique de dialogue "
@@ -67,12 +80,13 @@ PROMPTS = {
     "rivals": (
         "Génère un tableau JSON de 8 provocations courtes (max 120 caractères) que des hackers rivaux "
         "écriraient sur un forum, en français. Variées : mépris, défi, vantardise, menace voilée, humour noir. "
-        "Réponds UNIQUEMENT avec le tableau JSON, sans texte autour.\n"
+        "Réponds UNIQUEMENT avec un tableau JSON de chaînes de caractères, SANS objet englobant, sans texte autour.\n"
+        "Exemple de format attendu : [\"provocation un\", \"provocation deux\", \"provocation trois\"]\n"
         "Contexte du joueur : {context}"
     )
 }
 
-MAX_OUTPUT = {"missions": 700, "news": 800, "contacts": 500, "rivals": 300}
+MAX_OUTPUT = {"missions": 1200, "news": 800, "contacts": 500, "rivals": 300}
 
 
 def load_config():
@@ -93,11 +107,16 @@ def today():
     return datetime.date.today().isoformat()
 
 
-def load_budget():
+def budget_file(provider):
+    return BUDGET_GROQ_PATH if provider == "groq" else BUDGET_PATH
+
+
+def load_budget(provider="gemini"):
     default = {"date": today(), "requests": 0, "tokens": 0}
-    if os.path.exists(BUDGET_PATH):
+    path = budget_file(provider)
+    if os.path.exists(path):
         try:
-            with open(BUDGET_PATH, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 b = json.load(f)
             if b.get("date") != today():
                 b = default
@@ -108,26 +127,34 @@ def load_budget():
     return b
 
 
-def save_budget(b):
+def save_budget(provider, b):
     try:
-        with open(BUDGET_PATH, "w", encoding="utf-8") as f:
+        with open(budget_file(provider), "w", encoding="utf-8") as f:
             json.dump(b, f)
     except Exception as e:
         print("[BUDGET] Erreur d'écriture :", e)
 
 
-def budget_allows():
-    b = load_budget()
+def budget_allows(provider):
+    b = load_budget(provider)
+    if provider == "groq":
+        return b["requests"] < CONFIG["groq_daily_budget_requests"] and b["tokens"] < CONFIG["groq_daily_budget_tokens"], b
     return b["requests"] < CONFIG["daily_budget_requests"] and b["tokens"] < CONFIG["daily_budget_tokens"], b
 
 
-def spend(tokens):
-    b = load_budget()
+def spend(provider, tokens):
+    b = load_budget(provider)
     b["requests"] += 1
     b["tokens"] += tokens
-    save_budget(b)
-    print("[AI] +1 requête, %d tokens — %d/%d requêtes, %d/%d tokens aujourd'hui" % (
-        tokens, b["requests"], CONFIG["daily_budget_requests"], b["tokens"], CONFIG["daily_budget_tokens"]))
+    save_budget(provider, b)
+    if provider == "groq":
+        print("[AI][groq] +1 requête, %d tokens — %d/%d requêtes, %d/%d tokens aujourd'hui" % (
+            tokens, b["requests"], CONFIG["groq_daily_budget_requests"],
+            b["tokens"], CONFIG["groq_daily_budget_tokens"]))
+    else:
+        print("[AI][gemini] +1 requête, %d tokens — %d/%d requêtes, %d/%d tokens aujourd'hui" % (
+            tokens, b["requests"], CONFIG["daily_budget_requests"],
+            b["tokens"], CONFIG["daily_budget_tokens"]))
     return b
 
 
@@ -162,6 +189,89 @@ def call_gemini(prompt, max_tokens):
     usage = data.get("usageMetadata", {})
     tokens = usage.get("promptTokenCount", 0) + usage.get("candidatesTokenCount", 0)
     return strip_fences(text), tokens
+
+
+def call_groq(prompt, max_tokens):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    payload = {
+        "model": CONFIG["groq_model"],
+        "messages": [
+            {"role": "system", "content": "Tu réponds UNIQUEMENT avec un JSON valide, sans texte autour, sans marques de code."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.9,
+        "max_tokens": max_tokens,
+        "response_format": {"type": "json_object"}
+    }
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                 headers={"Content-Type": "application/json",
+                                          "Authorization": "Bearer " + CONFIG["groq_api_key"],
+                                          "User-Agent": "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"})
+    with urllib.request.urlopen(req, timeout=CONFIG["timeout"]) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    text = data["choices"][0]["message"]["content"]
+    usage = data.get("usage", {})
+    tokens = usage.get("prompt_tokens", 0) + usage.get("completion_tokens", 0)
+    return strip_fences(text), tokens
+
+
+def provider_key(provider):
+    return "api_key" if provider == "gemini" else "groq_api_key"
+
+
+def generate(kind, context):
+    prompt = build_prompt(kind, context)
+    max_tokens = MAX_OUTPUT.get(kind, 300)
+    primary = CONFIG["provider_roles"].get(kind) or "gemini"
+    fallback = "groq" if primary == "gemini" else "gemini"
+
+    providers = []
+    if CONFIG.get(provider_key(primary)):
+        providers.append(primary)
+    if fallback != primary and CONFIG.get(provider_key(fallback)):
+        providers.append(fallback)
+
+    last_reason = None
+    for provider in providers:
+        allowed, b = budget_allows(provider)
+        if not allowed:
+            last_reason = "budget"
+            print("[AI][%s] Budget du jour atteint (%d requêtes)" % (provider, b["requests"]))
+            continue
+        try:
+            if provider == "groq":
+                text, tokens = call_groq(prompt, max_tokens)
+            else:
+                text, tokens = call_gemini(prompt, max_tokens)
+        except urllib.error.HTTPError as e:
+            last_reason = "rate_limit" if e.code == 429 else "api"
+            print("[AI][%s] Erreur HTTP %d (%s)" % (provider, e.code, last_reason))
+            continue
+        except Exception as e:
+            last_reason = "api"
+            print("[AI][%s] Erreur réseau : %s" % (provider, e))
+            continue
+
+        data = parse_json(text)
+        if data is None:
+            last_reason = "api"
+            print("[AI][%s] Réponse JSON invalide pour %s : %s..." % (provider, kind, text[:120]))
+            continue
+
+        if kind in ("missions", "news", "rivals") and isinstance(data, dict):
+            for v in data.values():
+                if isinstance(v, list):
+                    data = v
+                    break
+            else:
+                print("[AI][%s] %s : objet sans tableau JSON" % (provider, kind))
+                last_reason = "api"
+                continue
+
+        spend(provider, tokens)
+        return data, provider
+
+    return None, last_reason
 
 
 def parse_json(text):
@@ -214,14 +324,18 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if urlparse(self.path).path == "/api/status":
-            b = load_budget()
+            b = load_budget("gemini")
+            bg = load_budget("groq")
             self.send_json({
-                "configured": bool(CONFIG["api_key"]),
+                "configured": bool(CONFIG["api_key"]) or bool(CONFIG["groq_api_key"]),
                 "model": CONFIG["model"],
+                "groq_model": CONFIG["groq_model"],
                 "used_requests": b["requests"],
                 "budget_requests": CONFIG["daily_budget_requests"],
                 "used_tokens": b["tokens"],
                 "budget_tokens": CONFIG["daily_budget_tokens"],
+                "groq_used_requests": bg["requests"],
+                "groq_budget_requests": CONFIG["groq_daily_budget_requests"],
                 "reset_date": b["date"]
             })
             return
@@ -246,37 +360,16 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"ok": False, "reason": "unknown_kind"}, 400)
             return
 
-        if not CONFIG["api_key"]:
+        if not (CONFIG["api_key"] or CONFIG["groq_api_key"]):
             self.send_json({"ok": False, "reason": "nokey"})
             return
 
-        allowed, b = budget_allows()
-        if not allowed:
-            self.send_json({"ok": False, "reason": "budget",
-                            "used": b, "budget": CONFIG["daily_budget_requests"]})
-            return
-
-        prompt = build_prompt(kind, body.get("context") or {})
-        try:
-            text, tokens = call_gemini(prompt, MAX_OUTPUT.get(kind, 300))
-        except urllib.error.HTTPError as e:
-            reason = "rate_limit" if e.code == 429 else "api"
-            print("[AI] Erreur HTTP %d (%s)" % (e.code, reason))
-            self.send_json({"ok": False, "reason": reason})
-            return
-        except Exception as e:
-            print("[AI] Erreur réseau :", e)
-            self.send_json({"ok": False, "reason": "api"})
-            return
-
-        data = parse_json(text)
+        data, info = generate(kind, body.get("context") or {})
         if data is None:
-            print("[AI] Réponse JSON invalide pour %s : %s..." % (kind, text[:120]))
-            self.send_json({"ok": False, "reason": "api"})
+            self.send_json({"ok": False, "reason": info or "api"})
             return
 
-        spend(tokens)
-        self.send_json({"ok": True, "data": data, "tokens": tokens})
+        self.send_json({"ok": True, "data": data, "provider": info})
 
 
 def main():
@@ -286,11 +379,17 @@ def main():
         port = int(args[args.index("--port") + 1])
     httpd = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print("Ghost Protocol — http://localhost:%d (LAN : %s:%d)" % (port, get_lan_ip(), port))
+    providers = []
     if CONFIG["api_key"]:
-        print("IA Gemini : ACTIVE (%s) — budget %d req/jour, %d tokens/jour" % (
-            CONFIG["model"], CONFIG["daily_budget_requests"], CONFIG["daily_budget_tokens"]))
+        providers.append("Gemini (%s)" % CONFIG["model"])
+    if CONFIG["groq_api_key"]:
+        providers.append("Groq (%s)" % CONFIG["groq_model"])
+    if providers:
+        print("IA ACTIVE : %s — rôles : %s" % (
+            " + ".join(providers),
+            ", ".join("%s→%s" % (k, v) for k, v in CONFIG["provider_roles"].items())))
     else:
-        print("IA Gemini : PAS DE CLÉ — édite server_config.json puis redémarre (le jeu fonctionne sans).")
+        print("IA : PAS DE CLÉ — édite server_config.json puis redémarre (le jeu fonctionne sans).")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
